@@ -10,6 +10,7 @@ from torchvision.datasets import MNIST
 from torchvision import transforms
 # __import_lightning_end__
 
+
 # __lightning_begin__
 class LightningMNISTClassifier(pl.LightningModule):
 
@@ -93,10 +94,10 @@ class LightningMNISTClassifier(pl.LightningModule):
             mnist_train, [55000, 5000])
 
     def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=int(self.batch_size), num_workers=2)
+        return DataLoader(self.mnist_train, batch_size=int(self.batch_size), num_workers=8)
 
     def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=int(self.batch_size), num_workers=2)
+        return DataLoader(self.mnist_val, batch_size=int(self.batch_size), num_workers=8)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
