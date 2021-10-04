@@ -1,4 +1,7 @@
+import logging
 import os
+import random
+import sys
 from filelock import FileLock
 
 # __import_lightning_begin__
@@ -12,27 +15,23 @@ from torchvision import transforms
 
 import torchvision.transforms.functional as TF
 
+from MNISTDataModule import MNISTDataModule
+from augmentation import TRANSFORM_NAMES
+
+log = logging.getLogger(__name__)
+
 
 # __lightning_begin__
 class LightningFashionMNIST(pl.LightningModule):
-    def __init__(self, config, data_dir=None):
-        super(LightningFashionMNIST, self).__init__()
+    def __init__(self, conf=None):
+        super().__init__()
+        self.conf = conf
 
-        self.data_dir = data_dir or os.getcwd()
-
-        self.layer_1_size = config["layer_1_size"]
-        self.layer_2_size = config["layer_2_size"]
-        self.lr = config["lr"]
-        self.batch_size = config["batch_size"]
-
-       
-        self.config = config
-        
         # mnist images are (1, 28, 28) (channels, width, height)
-        self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_size)
-        self.layer_2 = torch.nn.Linear(self.layer_1_size, self.layer_2_size)
-        # there are 10
-        self.layer_3 = torch.nn.Linear(self.layer_2_size, 10)
+        self.layer_1 = torch.nn.Linear(28 * 28, self.conf["layer_1_size"])
+        self.layer_2 = torch.nn.Linear(self.conf["layer_1_size"], self.conf["layer_2_size"])
+        # there are 10 classes
+        self.layer_3 = torch.nn.Linear(self.conf["layer_2_size"], 10)
 
     def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -62,13 +61,7 @@ class LightningFashionMNIST(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
-        
-        black = -0.42421296
-        # apply augmentations tp batch
-        for idx, torch_img in enumerate(x):
-            torch_img = TF.rotate(torch_img, self.config["rotate_image"], fill=black)
-            x[idx] = torch_img
-        
+
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
         accuracy = self.accuracy(logits, y)
@@ -90,32 +83,54 @@ class LightningFashionMNIST(pl.LightningModule):
         self.log("ptl/val_loss", avg_loss)
         self.log("ptl/val_accuracy", avg_acc)
 
-    @staticmethod
-    def download_data(data_dir):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        with FileLock(os.path.expanduser("~/.data.lock")):
-            # https://pytorch.org/vision/stable/datasets.html#fashion-mnist
-            return FashionMNIST(data_dir, train=True, download=True, transform=transform)
-
-    def prepare_data(self):
-        mnist_train = self.download_data(self.data_dir)
-
-        self.mnist_train, self.mnist_val = random_split(
-            mnist_train, [55000, 5000])
-
-    def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=int(self.batch_size), num_workers=8)
-
-    def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=int(self.batch_size), num_workers=8)
-
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.conf["lr"])
         return optimizer
 
 
 # __lightning_end__
 
+
+def main():
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+    log.info("Starting...")
+
+    # set up the augmentations
+    # tuple of augmentation name and its magnitude
+    augmentations = []
+    for tfn_name in TRANSFORM_NAMES:
+        augmentations.append((tfn_name, random.random()))
+
+    conf = {
+        "progress_bar_refresh_rate": 25,
+        "layer_1_size": 512,
+        "layer_2_size": 512,
+        "lr": 0.001,
+        "batch_size": 32,
+        "data_dir": "./data",
+        # Fashion mnist mean and std
+        "data_mean": 0.28604063391685486,
+        "data_std": 0.35302430391311646,
+        "augmentations": augmentations,
+    }
+
+    log.info(f"Conf {conf}")
+
+    data = MNISTDataModule(conf=conf)
+
+    model = LightningFashionMNIST(conf=conf)
+
+    trainer = pl.Trainer(
+        default_root_dir="./data",
+        gpus=-1 if torch.cuda.device_count() > 0 else 0,
+        max_epochs=2,
+        progress_bar_refresh_rate=conf["progress_bar_refresh_rate"],
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(model, data)
+
+
+if __name__ == '__main__':
+    main()
+    sys.exit()
