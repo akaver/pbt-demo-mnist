@@ -59,29 +59,42 @@ class LightningFashionMNIST(pl.LightningModule):
         accuracy = correct / len(labels)
         return torch.tensor(accuracy)
 
-    def training_step(self, train_batch, batch_idx):
+    def model_step(self, train_batch, batch_idx):
         x, y = train_batch
 
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
         accuracy = self.accuracy(logits, y)
+        
+        return loss, accuracy
+        
+    def training_step(self, train_batch, batch_idx):
+        loss, accuracy = self.model_step(train_batch, batch_idx)
+        
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('train_acc', accuracy, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         self.log("ptl/train_loss", loss)
         self.log("ptl/train_accuracy", accuracy)
-        return loss
+        return {'loss': loss, 'acc': accuracy}
 
     def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
-        logits = self.forward(x)
-        loss = self.cross_entropy_loss(logits, y)
-        accuracy = self.accuracy(logits, y)
+        loss, accuracy = self.model_step(val_batch, batch_idx)
         return {"val_loss": loss, "val_accuracy": accuracy}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
         avg_acc = torch.stack([x["val_accuracy"] for x in outputs]).mean()
+        
+        self.log('avg_val_loss', avg_loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log('avg_val_acc', avg_acc, on_epoch=True, prog_bar=True, logger=True)
+
         self.log("ptl/val_loss", avg_loss)
         self.log("ptl/val_accuracy", avg_acc)
+        
+    def test_step(self, batch, batch_idx):
+        loss, accuracy = self.model_step(train_batch, batch_idx)
+        return {"test_loss": loss, "test_acc": acc accuracy}
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.conf["lr"])
@@ -97,9 +110,10 @@ def main():
 
     # set up the augmentations
     # tuple of augmentation name and its magnitude
-    augmentations = []
+    augmentations = []    
     for tfn_name in TRANSFORM_NAMES:
-        augmentations.append((tfn_name, random.random()))
+        level = random.random()
+        augmentations.append((tfn_name, level))
 
     conf = {
         "progress_bar_refresh_rate": 25,
@@ -123,7 +137,7 @@ def main():
     trainer = pl.Trainer(
         default_root_dir="./data",
         gpus=-1 if torch.cuda.device_count() > 0 else 0,
-        max_epochs=2,
+        max_epochs=10,
         progress_bar_refresh_rate=conf["progress_bar_refresh_rate"],
         num_sanity_val_steps=0,
     )
