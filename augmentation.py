@@ -64,12 +64,18 @@ def posterize(img: torch.Tensor, level: float, fill=None) -> torch.Tensor:
     pass
 
 
-def rotate(img: torch.Tensor, level: float, fill=None) -> torch.Tensor:
+def rotate_left(img: torch.Tensor, level: float, fill=None) -> torch.Tensor:
     fill = img[0, 0, 0].item() if fill is None else fill
     # max 30 degrees of rotation
     degrees = level * 30
-    if random.random() > 0.5:
-        degrees = -degrees
+    img = TF.rotate(img, degrees, fill=fill)
+    return img
+
+
+def rotate_right(img: torch.Tensor, level: float, fill=None) -> torch.Tensor:
+    fill = img[0, 0, 0].item() if fill is None else fill
+    # max 30 degrees of rotation
+    degrees = level * -30
     img = TF.rotate(img, degrees, fill=fill)
     return img
 
@@ -108,7 +114,8 @@ ALL_TRANSFORMS = [
     flip_updown,
     identity,
     posterize,
-    rotate,
+    rotate_left,
+    rotate_right,
     shear_x,
     shear_y,
     smooth,
@@ -119,9 +126,10 @@ ALL_TRANSFORMS = [
 
 # actual working augmentations. just add more here!
 ALL_TRANSFORMS = [
-    auto_contrast,
+    # auto_contrast,
     blur,
-    rotate,
+    rotate_left,
+    rotate_right,
 ]
 
 NAME_TO_TRANSFORM = {t.__name__: t for t in ALL_TRANSFORMS}

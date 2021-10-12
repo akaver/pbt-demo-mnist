@@ -54,7 +54,7 @@ class MNISTDataSet(FashionMNIST):
         # converts byte values to 0.0-1.0 float tensor
         img = TF.to_tensor(img)
 
-        if "data_mean" in self.conf and "data_std" in self.conf:
+        if self.conf is not None and "data_mean" in self.conf and "data_std" in self.conf:
             img = TF.normalize(img, self.conf["data_mean"], self.conf["data_std"])
 
         # pixel value to use when transformation needs to fill empty space (on rotation for example)
@@ -137,8 +137,13 @@ class MNISTDataModule(pl.LightningDataModule):
 
     # alter or apply augmentations to your batch before it is transferred to the device.
     def on_before_batch_transfer(self, batch, dataloader_idx: int):
-        if "augmentations" not in self.conf:
-            return batch # nothing to do
+        # augment only in training
+        if not self.trainer.training:
+            return batch
+
+        # augmentations missing or empty
+        if "augmentations" not in self.conf or len(self.conf["augmentations"]) == 0:
+            return batch
 
         # apply augmentations, increasing the amount of samples batch_size * (1 + aug_amount)
         # possibility to run out of memory (main and/or gpu)
