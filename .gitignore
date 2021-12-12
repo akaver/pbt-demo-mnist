@@ -1,5 +1,6 @@
 data/
 MNIST/
+temp/
 
 .idea/
 .vscode/
