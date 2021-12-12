@@ -1,15 +1,11 @@
 import logging
-import os
 import sys
-import PIL
 import random
 import numpy as np
-import torch
 import matplotlib.pyplot as plt
-import torchvision.transforms.functional as TF
 
-from MNISTDataModule import MNISTDataSet
-from augmentation import TRANSFORM_NAMES, NAME_TO_TRANSFORM
+from FashionMNISTLightningDataModule import MNISTDataSet
+from augmentation.augmentation import TRANSFORM_NAMES, NAME_TO_TRANSFORM
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +21,7 @@ def main():
         "data_std":  0.35302430391311646,
     }
 
-    mnist_full = MNISTDataSet("./data", train=True, download=False, config=mnist_full_config)
+    mnist_full = MNISTDataSet("./data", train=True, download=False, conf=mnist_full_config)
 
     img, label = mnist_full[0]
 
