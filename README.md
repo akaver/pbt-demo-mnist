@@ -30,20 +30,21 @@ Actual augmentations are specified in augmentation/augmentation.py
 
 ## Useful code blocks for running in Jupyter notebooks
 ### Install packages
-~~~python
+~~~jupyterpython
 import sys
-!{sys.executable} -m pip install --upgrade filelock
+!{sys.executable} -m pip install --upgrade <packagename>
 ~~~
 
 ### Enable imported source code modules autoreload
+Otherwise, once loaded .py files will not be reloaded when you update them - causing confusion and runtime problems.
 https://ipython.readthedocs.io/en/stable/config/extensions/autoreload.html
-~~~~python
+~~~~jupyterpython
 %load_ext autoreload
 %autoreload 2
 ~~~~
 
 ### Launch tensorboard (only in jupyter notebook - not in jb dataspell)
-~~~python
+~~~jupyterpython
 %load_ext tensorboard
 %tensorboard --logdir data/lightning_logs/
 ~~~
