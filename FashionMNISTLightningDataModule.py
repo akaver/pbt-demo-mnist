@@ -26,6 +26,9 @@ class FashionMNISTLightningDataModule(pl.LightningDataModule):
         log.info(f"batch_size: {self.batch_size}. num_workers: {self.num_workers}. data_dir: {self.data_dir}.")
         self.data_mean = None if "data_mean" not in conf else conf["data_mean"]
         self.data_std = None if "data_std" not in conf else conf["data_std"]
+        self.mnist_train = None
+        self.mnist_val = None
+        self.mnist_test = None
 
     def setup(self, stage: Optional[str] = None):
         mnist_full_config = {
@@ -81,13 +84,13 @@ class FashionMNISTLightningDataModule(pl.LightningDataModule):
     def predict_dataloader(self):
         pass
 
-
     @staticmethod
     def get_cpu_count():
         # https://stackoverflow.com/questions/1006289/how-to-find-out-the-number-of-cpus-using-python
         return multiprocessing.cpu_count()
 
     # alter or apply augmentations to your batch before it is transferred to the device.
+    # works well in macbook pro m1 max, cpu/hdd are really fast
     def on_before_batch_transfer(self, batch, dataloader_idx: int):
         # augment only in training
         if not self.trainer.training:
