@@ -115,10 +115,12 @@ def tune_mnist_pbt(num_samples=15, training_iteration=15, cpus_per_trial=1, gpus
 
     # set up the augmentations
     # tuple of augmentation name and its magnitude
-    augmentations = []
-    for tfn_name in TRANSFORM_NAMES:
-        augmentations.append((tfn_name, random.random()))
+    def initial_augmentations(spec):
+        augmentations = []
+        for tfn_name in TRANSFORM_NAMES:
+            augmentations.append((tfn_name, random.random()))
 
+        return augmentations
 
 
     conf = {
@@ -131,7 +133,7 @@ def tune_mnist_pbt(num_samples=15, training_iteration=15, cpus_per_trial=1, gpus
         "data_dir": "~/mldata",
         "data_mean": 0.28604063391685486,
         "data_std": 0.35302430391311646,
-        "augmentations": augmentations
+        "augmentations": tune.sample_from(lambda spec: initial_augmentations(spec))
     }
 
     analysis = tune.run(
