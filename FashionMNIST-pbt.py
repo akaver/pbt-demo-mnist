@@ -9,6 +9,7 @@ from time import sleep, perf_counter as pc
 # __import_lightning_begin__
 import torch
 import pytorch_lightning as pl
+from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader, random_split
 from torch.nn import functional as F
 from torchvision.datasets import FashionMNIST
@@ -40,7 +41,7 @@ def train_mnist_tune_checkpoint(conf,
     data_dir = conf["data_dir"]
     progress_bar = pl.callbacks.progress.TQDMProgressBar(refresh_rate=25);
 
-    trainer = pl.Trainer(
+    trainer = Trainer(
         max_epochs=num_epochs,
         # If fractional GPUs passed in, convert to int.
         gpus=math.ceil(num_gpus),
@@ -170,7 +171,7 @@ print(f"CPUs {cpu_count} GPUs {gpu_count}")
 start_time = pc()
 
 analysis = tune_mnist_pbt(num_samples=16, training_iteration=20, cpus_per_trial=cpu_count / 10,
-                          gpus_per_trial=gpu_count / 8)
+                          gpus_per_trial=gpu_count / 4)
 analysis.best_config
 analysis.results
 
